@@ -1,6 +1,13 @@
+import { AutomergeUrl, Repo } from '@automerge/automerge-repo';
 import * as R from 'remeda';
 
+
 // TODO: kept in sync manually between multiple repos
+
+
+// ------
+// BUILDS
+// ------
 
 export type BuildsDoc = {
   builds: { [buildId: string]: Build },
@@ -23,7 +30,7 @@ export type Result<T, E = Error> =
   | { ok: false, error: E };
 
 export type BuildOutput = {
-  pdf: Uint8Array,
+  pdfUrl: AutomergeUrl,
 }
 
 export type SuccessfulBuild = Build & { result: { ok: true } }
@@ -47,4 +54,27 @@ export function getLatestSuccessfulBuild(doc: BuildsDoc): SuccessfulBuild | unde
     R.filter(buildIsSuccessful),
     R.maxBy(build => build.startTime.getTime()),
   );
+}
+
+
+// ----
+// FILE
+// ----
+
+export type FileDoc = {
+  contents: Uint8Array,
+}
+
+export async function getFileContents(repo: Repo, fileUrl: AutomergeUrl): Promise<Uint8Array> {
+  const fileHandle = repo.find<FileDoc>(fileUrl);
+  const fileDoc = await fileHandle.doc();
+  if (!fileDoc) {
+    throw new Error(`file doc not found at ${fileUrl}`);
+  }
+  return fileDoc.contents;
+}
+
+export async function writeNewFile(repo: Repo, contents: Uint8Array): Promise<AutomergeUrl> {
+  const fileHandle = repo.create<FileDoc>({ contents });
+  return fileHandle.url;
 }

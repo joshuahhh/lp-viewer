@@ -1,6 +1,6 @@
 import { AutomergeUrl, Repo } from "@automerge/automerge-repo";
 import { BrowserWebSocketClientAdapter } from "@automerge/automerge-repo-network-websocket";
-import { RepoContext, useDocument } from "@automerge/automerge-repo-react-hooks";
+import { RepoContext, useDocument, useRepo } from "@automerge/automerge-repo-react-hooks";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from "react-dom";
 import toast, { Toaster } from 'react-hot-toast';
@@ -10,7 +10,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { useParams } from 'react-router-dom';
 import * as R from 'remeda';
-import { Build, BuildsDoc, getLatestBuild, getLatestSuccessfulBuild } from './lp-shared';
+import { Build, BuildsDoc, getFileContents, getLatestBuild, getLatestSuccessfulBuild } from './lp-shared';
 
 
 // TODO:
@@ -21,6 +21,7 @@ import { Build, BuildsDoc, getLatestBuild, getLatestSuccessfulBuild } from './lp
 // [ ] page virtualization
 // [ ] images from internet URLs?
 // [ ] store pdfs in separate docs, cuz garbage collection isn't a thing yet
+// [ ] sticky success?
 
 
 type OnDocumentLoadSuccess = NonNullable<React.ComponentProps<typeof Document>['onLoadSuccess']>;
@@ -100,6 +101,7 @@ const UrlInner = memo(() => {
         left: 50,
         display: 'flex',
         justifyContent: 'center',
+        zIndex: 99,
       }}
     >
       <div
@@ -111,7 +113,6 @@ const UrlInner = memo(() => {
           borderRadius: 10,
           padding: 15,
           display: showInfo ? 'block' : 'none',
-          zIndex: 99,
           boxShadow: "0 3px 10px rgba(0, 0, 0, 0.1), 0 3px 3px rgba(0, 0, 0, 0.05)",
         }}
       >
@@ -198,15 +199,21 @@ const PDFViewer = memo((props: {
 
   const [ pdfs, setPdfs ] = useState<{cur: PDF | null, prev: LoadedPDF | null}>({cur: null, prev: null});
 
+  const repo = useRepo();
+
   useEffect(() => {
-    const blob = new Blob([build.result.value.pdf], {type: 'application/pdf'});
-    setPdfs((oldPdfs) => {
-      return {
-        cur: { id: build.id, blob, numPages: null, numPagesRendered: 0 },
-        prev: oldPdfs.cur?.numPages !== null ? oldPdfs.cur as LoadedPDF : oldPdfs.prev,
-      };
-    });
-  }, [build]);
+    async function go() {
+      const contents = await getFileContents(repo, build.result.value.pdfUrl);
+      const blob = new Blob([contents], {type: 'application/pdf'});
+      setPdfs((oldPdfs) => {
+        return {
+          cur: { id: build.id, blob, numPages: null, numPagesRendered: 0 },
+          prev: oldPdfs.cur?.numPages !== null ? oldPdfs.cur as LoadedPDF : oldPdfs.prev,
+        };
+      });
+    }
+    go();
+  }, [build, repo]);
 
   const onDocumentLoadSuccess: OnDocumentLoadSuccess = useCallback((pdf) => {
     setPdfs((oldPdfs) => ({
@@ -299,7 +306,7 @@ const PDFViewer = memo((props: {
             href={URL.createObjectURL(pdfs.cur.blob)}
             target="_blank" rel="noreferrer"
           >
-            download pdf
+            ⬇ download pdf
           </a>
         </div>,
         props.infoElem
