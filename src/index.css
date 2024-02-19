@@ -8,8 +8,15 @@ html {
 body {
   background-color: #eee;
   color: #333;
-  margin: 0px;
-  padding: 40px;
+  margin: 10px;
   line-height: 20px;
   font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
+
+.display-none {
+  display: none;
+}
+
+.visibility-hidden {
+  visibility: hidden;
 }
