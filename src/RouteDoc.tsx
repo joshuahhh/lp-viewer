@@ -9,7 +9,7 @@ export const RouteDoc = memo((props: { docUrl: string }) => {
 
   useEffect(() => {
     const go = async () => {
-      const resp = await fetch(`http://64.23.187.85:8088/build/${docUrl}`);
+      const resp = await fetch(`https://lp.joshuahhh.com:8088/build/${docUrl}`);
       const buildsUrl = await resp.text();
       console.log("got buildsUrl", buildsUrl);
       setBuildsUrl(buildsUrl as AutomergeUrl);
