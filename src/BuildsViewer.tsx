@@ -1,16 +1,15 @@
-import { AutomergeUrl, Repo } from "@automerge/automerge-repo";
-import { BrowserWebSocketClientAdapter } from "@automerge/automerge-repo-network-websocket";
-import { RepoContext, useDocument, useRepo } from "@automerge/automerge-repo-react-hooks";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AutomergeUrl } from "@automerge/automerge-repo";
+import { useDocument, useRepo } from "@automerge/automerge-repo-react-hooks";
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from "react-dom";
 import toast, { Toaster } from 'react-hot-toast';
 import { BsInfoLg } from "react-icons/bs";
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-import { useParams } from 'react-router-dom';
 import * as R from 'remeda';
 import { Build, BuildsDoc, getFileContents, getLatestBuild, getLatestSuccessfulBuild } from './lp-shared';
+import { Link } from "react-router-dom";
 
 
 // TODO:
@@ -31,21 +30,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
-export const Url = memo(() => {
-  const repoRef = useRef<Repo>();
-  if (!repoRef.current) {
-    const networkAdapter = new BrowserWebSocketClientAdapter("wss://sync.automerge.org", 500);
-    repoRef.current = new Repo({ network: [ networkAdapter ] });
-  }
+export const BuildsViewer = memo((props: { buildsUrl: string }) => {
+  const { buildsUrl } = props;
 
-  return <RepoContext.Provider value={repoRef.current}>
-    <UrlInner />
-  </RepoContext.Provider>;
-});
-
-const UrlInner = memo(() => {
-  const { url } = useParams();
-  const [ doc, _changeDoc ] = useDocument<BuildsDoc>(url as AutomergeUrl | undefined);
+  const [ doc, _changeDoc ] = useDocument<BuildsDoc>(buildsUrl as AutomergeUrl | undefined);
 
   useEffect(() => {
     if (!doc) {
@@ -114,10 +102,14 @@ const UrlInner = memo(() => {
           padding: 15,
           display: showInfo ? 'block' : 'none',
           boxShadow: "0 3px 10px rgba(0, 0, 0, 0.1), 0 3px 3px rgba(0, 0, 0, 0.05)",
+          fontSize: '80%',
         }}
       >
         <div>
-          monitoring builds at <span style={{fontStyle: "italic"}}>{url}</span>
+          this is <Link to="/">lp-viewer</Link>
+        </div>
+        <div>
+          monitoring builds at <span style={{fontStyle: "italic"}}>{buildsUrl}</span>
         </div>
         <div ref={setInfoElem}/>
       </div>
