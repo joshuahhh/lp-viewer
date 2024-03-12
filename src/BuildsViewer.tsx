@@ -54,11 +54,9 @@ export const BuildsViewer = memo((props: {
 
   return <>
     {/* <h1>lp-viewer <span style={{fontStyle: "italic", fontSize: 'initial', fontWeight: 'initial'}}>{url}</span></h1> */}
-    <div>
-      { doc && doc.builds && docInfoSlot &&
-          <UrlInnerWithDoc doc={doc} infoElem={docInfoSlot} />
-      }
-    </div>
+    { doc && doc.builds && docInfoSlot &&
+        <UrlInnerWithDoc doc={doc} infoElem={docInfoSlot} />
+    }
 
     <Toaster />
 
@@ -80,6 +78,8 @@ const UrlInnerWithDoc = memo((props: {
 }) => {
   const { doc, infoElem } = props;
 
+  const [ ownInfoSlot, setOwnInfoSlot ] = useState<HTMLDivElement | null>(null);
+
   const latestBuild = useMemo(() => getLatestBuild(doc), [doc]);
   const latestSuccessfulBuild = useMemo(() => getLatestSuccessfulBuild(doc), [doc]);
 
@@ -96,9 +96,11 @@ const UrlInnerWithDoc = memo((props: {
     }
   }, [latestBuild])
 
-  return <div>
+  return <>
     { latestSuccessfulBuild
-      ? <PDFViewer build={latestSuccessfulBuild} infoElem={infoElem} />
+      ? latestSuccessfulBuild.result.value.pdfUrl
+        ? <PDFViewer build={latestSuccessfulBuild} pdfUrl={latestSuccessfulBuild.result.value.pdfUrl} infoElem={ownInfoSlot} />
+        : <HTMLViewer build={latestSuccessfulBuild} buildDirUrl={latestSuccessfulBuild.result.value.buildDirUrl} infoElem={ownInfoSlot} />
       : <div> no successful builds </div>
     }
     { createPortal(
@@ -110,10 +112,11 @@ const UrlInnerWithDoc = memo((props: {
         {latestBuild && latestBuild.id !== latestSuccessfulBuild?.id && <div>
           latest build <span style={{fontStyle: "italic"}}>{latestBuild.id}</span>
         </div>}
+        <div ref={setOwnInfoSlot} />
       </>,
       infoElem
     ) }
-  </div>;
+  </>;
 });
 
 function getSeconds() {
@@ -142,9 +145,10 @@ type LoadedPDF = PDF & { numPages: number };
 
 const PDFViewer = memo((props: {
   build: Build & { result: { ok: true }},
-  infoElem: HTMLDivElement,
+  pdfUrl: AutomergeUrl,
+  infoElem: HTMLDivElement | null,
 }) => {
-  const { build } = props;
+  const { build, pdfUrl, infoElem } = props;
 
   const [ pdfs, setPdfs ] = useState<{cur: PDF | null, prev: LoadedPDF | null}>({cur: null, prev: null});
 
@@ -152,7 +156,7 @@ const PDFViewer = memo((props: {
 
   useEffect(() => {
     async function go() {
-      const contents = await getFileContents(repo, build.result.value.pdfUrl);
+      const contents = await getFileContents(repo, pdfUrl);
       const blob = new Blob([contents], {type: 'application/pdf'});
       setPdfs((oldPdfs) => {
         return {
@@ -162,7 +166,7 @@ const PDFViewer = memo((props: {
       });
     }
     go();
-  }, [build, repo]);
+  }, [build, pdfUrl, repo]);
 
   const onDocumentLoadSuccess: OnDocumentLoadSuccess = useCallback((pdf) => {
     setPdfs((oldPdfs) => ({
@@ -195,7 +199,7 @@ const PDFViewer = memo((props: {
 
   const curPageAllReady = pdfs.cur && (pdfs.cur.numPages === pdfs.cur.numPagesRendered);
 
-  return <div>
+  return <div style={{margin: 10}}>
     {/* <div>{build.id}</div> */}
     <div className="scroller" ref={setScroller}>
       {/* <div>curPageAllReady: {curPageAllReady ? "true" : "false"}</div>
@@ -249,7 +253,7 @@ const PDFViewer = memo((props: {
             </div>
           </Document>,
       ] }
-      { createPortal(
+      { infoElem && createPortal(
         pdfs.cur && <div>
           <a
             href={URL.createObjectURL(pdfs.cur.blob)}
@@ -258,8 +262,57 @@ const PDFViewer = memo((props: {
             ⬇ download pdf
           </a>
         </div>,
-        props.infoElem
+        infoElem
       ) }
     </div>
   </div>
+});
+
+const HTMLViewer = memo((props: {
+  build: Build & { result: { ok: true }},
+  buildDirUrl: AutomergeUrl | null,
+  infoElem: HTMLDivElement | null,
+}) => {
+  const { buildDirUrl, infoElem } = props;
+
+  const [ showHome, setShowHome ] = useState(false);
+
+  const trHomeUrl = "https://pvh.github.io/trail-runner/";
+  const trDocUrl = `https://pvh.github.io/trail-runner/automerge-repo/${buildDirUrl}/index.html`;
+
+  return <>
+    <iframe
+      title="HTML build output"
+      src={showHome ? trHomeUrl : trDocUrl}
+      style={{
+        display: 'block',
+        width: '100%',
+        height: '100%',
+        border: 'none',
+      }}
+    />
+    { infoElem && createPortal(<>
+      <div>
+        HTML build directory <a style={{fontFamily: 'monospace'}} href={`https://joshuahhh.com/amview/#/${buildDirUrl}`}>{buildDirUrl}</a>
+      </div>
+      <div>
+        <label>
+          <input
+            type="checkbox"
+            checked={showHome}
+            onChange={(e) => setShowHome(e.target.checked)}
+          />
+          Show Trail Runner home, to load service worker
+        </label>
+      </div>
+      <div>
+        <a
+          href="TODO"
+          target="_blank" rel="noreferrer"
+        >
+          ⬇ download something [TODO]
+        </a>
+      </div>
+    </>, infoElem)}
+  </>;
 });
