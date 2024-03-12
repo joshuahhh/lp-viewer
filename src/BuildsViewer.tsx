@@ -3,13 +3,12 @@ import { useDocument, useRepo } from "@automerge/automerge-repo-react-hooks";
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from "react-dom";
 import toast, { Toaster } from 'react-hot-toast';
-import { BsInfoLg } from "react-icons/bs";
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import * as R from 'remeda';
 import { Build, BuildsDoc, getFileContents, getLatestBuild, getLatestSuccessfulBuild } from './lp-shared';
-import { Link } from "react-router-dom";
+import { InfoStuff } from "./InfoStuff";
 
 
 // TODO:
@@ -30,8 +29,11 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
-export const BuildsViewer = memo((props: { buildsUrl: string }) => {
-  const { buildsUrl } = props;
+export const BuildsViewer = memo((props: {
+  buildsUrl: string,
+  infoSlot?: HTMLDivElement | null,
+}) => {
+  const { buildsUrl, infoSlot } = props;
 
   const [ doc, _changeDoc ] = useDocument<BuildsDoc>(buildsUrl as AutomergeUrl | undefined);
 
@@ -40,80 +42,35 @@ export const BuildsViewer = memo((props: { buildsUrl: string }) => {
       toast.loading("loading from Automerge...", { id: "toast" });
     } else if (!doc.builds) {
       toast.error("misformatted Automerge doc", { id: "toast" });
+      console.error("misformatted Automerge doc", doc);
     }
     // TODO: put something in info box?
   }, [doc]);
 
-  const [ showInfo, setShowInfo ] = useState(false);
-  const [ infoElem, setInfoElem ] = useState<HTMLDivElement | null>(null);
+  const [ ownInfoSlot, setOwnInfoSlot ] = useState<HTMLDivElement | null>(null);
+  const [ docInfoSlot, setDocInfoSlot ] = useState<HTMLDivElement | null>(null);
+
+  const infoSlotToUse = infoSlot || ownInfoSlot;
 
   return <>
     {/* <h1>lp-viewer <span style={{fontStyle: "italic", fontSize: 'initial', fontWeight: 'initial'}}>{url}</span></h1> */}
     <div>
-      { doc && doc.builds && infoElem &&
-          <UrlInnerWithDoc doc={doc} infoElem={infoElem} />
+      { doc && doc.builds && docInfoSlot &&
+          <UrlInnerWithDoc doc={doc} infoElem={docInfoSlot} />
       }
     </div>
+
     <Toaster />
-    <div
-      style={{
-        position: 'fixed',
-        bottom: 0,
-        right: 0,
-        margin: 15,
-        fontSize: 20,
-        cursor: 'pointer',
-        // background: '#aaa',
-        // color: '#fff',
-        background: '#fff',
-        color: "#363636",
-        borderRadius: 100,
-        width: 30,
-        height: 30,
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 100,
-        boxShadow: "0 3px 10px rgba(0, 0, 0, 0.1), 0 3px 3px rgba(0, 0, 0, 0.05)",
-      }}
-      onClick={() => setShowInfo(!showInfo)}
-    >
-      <BsInfoLg/>
-    </div>
-    <div
-      className="bottom-bar"
-      style={{
-        position: 'fixed',
-        bottom: 0,
-        right: 50,
-        left: 50,
-        display: 'flex',
-        justifyContent: 'center',
-        zIndex: 99,
-      }}
-    >
-      <div
-        className="info"
-        style={{
-          margin: 15,
-          background: 'white',
-          color: '#363636',
-          borderRadius: 10,
-          padding: 15,
-          display: showInfo ? 'block' : 'none',
-          boxShadow: "0 3px 10px rgba(0, 0, 0, 0.1), 0 3px 3px rgba(0, 0, 0, 0.05)",
-          fontSize: '80%',
-        }}
-      >
-        <div>
-          this is <Link to="/">lp-viewer</Link>
-        </div>
-        <div>
+
+    { infoSlotToUse && createPortal(<>
+      { infoSlot && <div>  {/* only show this if we're embedded in a page watcher */}
           monitoring builds at <span style={{fontStyle: "italic"}}>{buildsUrl}</span>
         </div>
-        <div ref={setInfoElem}/>
-      </div>
-    </div>
+      }
+      <div ref={setDocInfoSlot} />
+    </>, infoSlotToUse) }
+
+    { !infoSlot && <InfoStuff setSlot={setOwnInfoSlot} /> }
   </>;
 });
 

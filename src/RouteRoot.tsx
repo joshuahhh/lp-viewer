@@ -36,7 +36,8 @@ const AutomergeUrlSelector = memo((props: {
   const { onSelect } = props;
 
   const [openUrlInput, setOpenUrlInput] = useState("");
-  const automergeUrlMatch = openUrlInput
+  const automergeUrlMatch =
+    openUrlInput
     .replace(/%3A/g, ':')
     .match(/(automerge:[a-zA-Z0-9]*)/);
   const automergeUrlToOpen =
