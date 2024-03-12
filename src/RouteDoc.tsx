@@ -38,7 +38,7 @@ export const RouteDoc = memo((props: { docUrl: string }) => {
     }
     <InfoStuff setSlot={setSlot} warning={serverUrl !== defaultServerUrl} />
     { slot && createPortal(<>
-      using server <span style={{fontFamily: "monospace"}}>{serverUrl}</span>
+      using server <a style={{fontFamily: "monospace"}} href={serverUrl}>{serverUrl}</a>
       {' '}
       { serverUrl !== defaultServerUrl && <span style={{backgroundColor: "pink", padding: 4}}>not default</span> }
       <button

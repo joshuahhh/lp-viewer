@@ -64,7 +64,7 @@ export const BuildsViewer = memo((props: {
 
     { infoSlotToUse && createPortal(<>
       { infoSlot && <div>  {/* only show this if we're embedded in a page watcher */}
-          monitoring builds at <span style={{fontStyle: "italic"}}>{buildsUrl}</span>
+          monitoring builds at <a style={{fontFamily: 'monospace'}} href={`https://joshuahhh.com/amview/#/${buildsUrl}`}>{buildsUrl}</a>
         </div>
       }
       <div ref={setDocInfoSlot} />
@@ -104,7 +104,7 @@ const UrlInnerWithDoc = memo((props: {
     { createPortal(
       <>
         {latestSuccessfulBuild && <div>
-          showing build <span style={{fontStyle: "italic"}}>{latestSuccessfulBuild.id}</span>
+          showing build <span style={{fontFamily: "monospace"}}>{latestSuccessfulBuild.id}</span>
           { latestBuild && latestBuild.id === latestSuccessfulBuild.id && " (latest)" }
         </div>}
         {latestBuild && latestBuild.id !== latestSuccessfulBuild?.id && <div>
